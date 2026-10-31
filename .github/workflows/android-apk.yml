@@ -33,19 +33,30 @@ jobs:
           PY
       - name: Install native Android Media3 player
         run: |
-          cp native/*.java android/app/src/main/java/ua/bashaiev/onlinetv/
           python3 - <<'PY'
           from pathlib import Path
+          root=Path('android/app/src/main/java')
+          main=list(root.rglob('MainActivity.java'))
+          assert len(main)==1, f'Expected one MainActivity, found {main}'
+          destination=main[0].parent
+          for name in ('MainActivity.java','NativeTvPlugin.java','TvPlayerActivity.java'):
+              source=Path('native')/name
+              java=source.read_text()
+              package=next(x for x in main[0].read_text().splitlines() if x.startswith('package ')).removeprefix('package ').rstrip(';')
+              java=java.replace('package ua.bashaiev.onlinetv;', f'package {package};')
+              (destination/name).write_text(java)
           gradle=Path('android/app/build.gradle')
-          s=gradle.read_text()
-          s += "\\ndependencies { implementation 'androidx.media3:media3-exoplayer:1.5.1'; implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'; implementation 'androidx.media3:media3-ui:1.5.1' }\\n"
-          s=s.replace('\\\\n','\\n')
-          gradle.write_text(s)
-          p=Path('android/app/src/main/AndroidManifest.xml')
-          s=p.read_text()
-          s=s.replace('</application>', '<activity android:name=".TvPlayerActivity" android:exported="false" />\\n</application>')
-          s=s.replace('\\\\n','\\n')
-          p.write_text(s)
+          gradle.write_text(gradle.read_text()+"""
+          dependencies {
+              implementation 'androidx.media3:media3-exoplayer:1.5.1'
+              implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
+              implementation 'androidx.media3:media3-ui:1.5.1'
+          }
+          """)
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          xml=manifest.read_text()
+          xml=xml.replace('</application>', '<activity android:name=".TvPlayerActivity" android:exported="false" />'+chr(10)+'</application>')
+          manifest.write_text(xml)
           PY
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
