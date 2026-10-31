@@ -15,7 +15,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      # GitHub Ubuntu runners already provide Android SDK; avoid setup-android sdkmanager failure.
       - run: npm install
       - run: npm run build
       - run: npx cap add android
