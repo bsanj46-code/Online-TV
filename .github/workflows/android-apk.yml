@@ -20,6 +20,17 @@ jobs:
       - run: npm run build
       - run: npx cap add android
       - run: npx cap sync android
+      - name: Allow HTTP streams in Android WebView
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          s=s.replace('<application ', '<application android:usesCleartextTraffic="true" ', 1)
+          if 'android.permission.INTERNET' not in s:
+              s=s.replace('<application ', '<uses-permission android:name="android.permission.INTERNET" />\n    <application ', 1)
+          p.write_text(s)
+          PY
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
