@@ -1,1 +1,2 @@
 import fs from 'node:fs';fs.mkdirSync('www',{recursive:true});for(const f of ['index.html'])fs.copyFileSync(f,'www/'+f);
+fs.copyFileSync('node_modules/hls.js/dist/hls.min.js','www/hls.min.js');
