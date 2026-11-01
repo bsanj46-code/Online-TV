@@ -30,6 +30,20 @@ public class TvPlayerActivity extends Activity {
  private TextView title;
  private Button fullscreenButton;
  private boolean manualFullscreen=false;
+ private boolean fillVideo=false;
+ private void applyVideoFit(){
+  if(player==null)return;
+  if(fillVideo){
+   android.util.DisplayMetrics metrics=new android.util.DisplayMetrics();
+   getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+   int w=metrics.widthPixels,h=metrics.heightPixels;
+   player.setAspectRatio(w+":"+h);
+   player.setScale(0f);
+  }else{
+   player.setAspectRatio(null);
+   player.setScale(0f);
+  }
+ }
  private void applyOrientation(){
   boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
   boolean fullscreen=landscape||manualFullscreen;
@@ -38,7 +52,7 @@ public class TvPlayerActivity extends Activity {
   if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
   else{getWindow().getDecorView().setSystemUiVisibility(0);}
  }
- @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();}
+ @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();applyVideoFit();}
 
  private final Handler handler=new Handler(Looper.getMainLooper());
  private Runnable timeout;
@@ -101,7 +115,7 @@ public class TvPlayerActivity extends Activity {
   fullscreenButton.setBackground(buttonBackground);
   fullscreenButton.setElevation(12f*getResources().getDisplayMetrics().density);
   fullscreenButton.setContentDescription("На весь екран");
-  fullscreenButton.setOnClickListener(v->{manualFullscreen=!manualFullscreen;fullscreenButton.setText(manualFullscreen?"⤢":"⛶");applyOrientation();});
+  fullscreenButton.setOnClickListener(v->{fillVideo=!fillVideo;fullscreenButton.setText(fillVideo?"⤢":"⛶");fullscreenButton.setContentDescription(fillVideo?"Звичайний розмір":"Розтягнути відео на весь екран");applyVideoFit();});
   int dp=(int)getResources().getDisplayMetrics().density;
   FrameLayout.LayoutParams fullParams=new FrameLayout.LayoutParams(56*dp,52*dp,Gravity.RIGHT|Gravity.BOTTOM);
   fullParams.setMargins(0,0,14*dp,18*dp);
@@ -118,6 +132,7 @@ public class TvPlayerActivity extends Activity {
   player=new MediaPlayer(vlc);
   player.getVLCVout().setVideoView(surface);
   player.getVLCVout().attachViews();
+  applyVideoFit();
   player.setEventListener(event->runOnUiThread(()->{
    if(closing)return;
    switch(event.type){
