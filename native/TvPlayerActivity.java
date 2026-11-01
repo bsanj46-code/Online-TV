@@ -13,9 +13,13 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 public class TvPlayerActivity extends Activity {
  private ExoPlayer player;
+ private java.util.ArrayList<String> sources;
+ private int sourceIndex=0;
  @Override public void onCreate(Bundle saved) {
   super.onCreate(saved);
   String url=getIntent().getStringExtra("url");
+  sources=getIntent().getStringArrayListExtra("urls");
+  if(sources==null || sources.isEmpty()){sources=new java.util.ArrayList<>();sources.add(url);}
   LinearLayout root=new LinearLayout(this);
   root.setOrientation(LinearLayout.VERTICAL);
   root.setBackgroundColor(Color.BLACK);
@@ -39,13 +43,20 @@ public class TvPlayerActivity extends Activity {
   view.setPlayer(player);
   player.addListener(new Player.Listener() {
    @Override public void onPlayerError(PlaybackException error) {
-    runOnUiThread(() -> hint.setText("Не вдалося відтворити канал. Код: " + error.errorCode + ". Перевірте інший канал."));
+    runOnUiThread(() -> {
+     if(sourceIndex+1<sources.size()){
+      sourceIndex++;
+      hint.setText("Спроба резервного джерела " + (sourceIndex+1) + "/" + sources.size());
+      player.setMediaItem(MediaItem.fromUri(sources.get(sourceIndex)));
+      player.prepare();player.play();
+     }else{hint.setText("Джерела недоступні. Код: " + error.errorCode);}
+    });
    }
    @Override public void onPlaybackStateChanged(int state) {
     if(state == Player.STATE_READY) runOnUiThread(() -> hint.setText("Відтворення запущено"));
    }
   });
-  player.setMediaItem(MediaItem.fromUri(url));
+  player.setMediaItem(MediaItem.fromUri(sources.get(0)));
   player.prepare();
   player.play();
  }
