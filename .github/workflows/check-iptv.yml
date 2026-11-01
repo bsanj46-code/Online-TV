@@ -12,7 +12,7 @@ jobs:
       - name: Test channel streams
         run: |
           python3 - <<'PY'
-          import re,urllib.request,urllib.error,csv,html
+          import re,urllib.request,urllib.error,csv,html,subprocess
           from pathlib import Path
           page=Path('index.html').read_text()
           section=page.split('const urls=',1)[1].split(';const playlistUrl=',1)[0]
@@ -29,10 +29,17 @@ jobs:
                       detail=str(resp.status)+' '+str(resp.headers.get('Content-Type',''))
               except Exception as exc:
                   detail=str(exc)[:160]
+              if status=='HLS_MANIFEST':
+                  try:
+                      probe=subprocess.run(['ffprobe','-v','error','-rw_timeout','7000000','-analyzeduration','3000000','-probesize','300000','-show_entries','stream=codec_type','-of','csv=p=0',url],capture_output=True,text=True,timeout=14)
+                      status='MEDIA_DETECTED' if probe.returncode==0 and ('video' in probe.stdout or 'audio' in probe.stdout) else 'MANIFEST_ONLY'
+                      detail+=' | '+(probe.stderr or probe.stdout)[:140]
+                  except Exception as exc:
+                      status='MANIFEST_ONLY';detail+=' | ffprobe: '+str(exc)[:100]
               rows.append([name,status,url,detail])
           with open('iptv-source-report.csv','w',newline='',encoding='utf-8') as f:
               writer=csv.writer(f);writer.writerow(['channel','result','url','details']);writer.writerows(rows)
-          print('Manifest responses:',sum(r[1]=='HLS_MANIFEST' for r in rows),'/',len(rows))
+          print('Media detected:',sum(r[1]=='MEDIA_DETECTED' for r in rows),'/',len(rows))
           for row in rows: print(row[0],row[1],row[3])
           PY
       - uses: actions/upload-artifact@v4
