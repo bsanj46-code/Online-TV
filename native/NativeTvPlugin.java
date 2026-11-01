@@ -54,15 +54,18 @@ public class NativeTvPlugin extends Plugin {
      if(freeTv.getResponseCode()==200){
       try(BufferedReader reader=new BufferedReader(new InputStreamReader(freeTv.getInputStream(),"UTF-8"))){
        String line;
-       java.util.regex.Pattern pattern=java.util.regex.Pattern.compile("\\\\[[^\\\\]]*\\\\]\\\\((https?://[^)]+\\\\.m3u8(?:\\\\?[^)]*)?)\\\\)");
        while((line=reader.readLine())!=null&&channels.length()<900){
-        if(!line.matches("^\\\\|\\\\s*\\\\d+\\\\s*\\\\|.*"))continue;
-        String[] cells=line.split("\\\\|");
-        if(cells.length<4)continue;
+        if(!line.startsWith("|"))continue;
+        String[] cells=line.split(java.util.regex.Pattern.quote("|"));
+        if(cells.length<4 || !cells[1].trim().matches("[0-9]+"))continue;
         String name=cells[2].trim().replace("Ⓢ","").trim();
-        java.util.regex.Matcher matcher=pattern.matcher(cells[3]);
-        if(!name.isEmpty()&&matcher.find()){
-         String url=matcher.group(1);
+        String cell=cells[3];
+        int begin=cell.indexOf("](http");
+        if(!name.isEmpty()&&begin>=0){
+         int finish=cell.indexOf(")",begin+2);
+         if(finish<0)continue;
+         String url=cell.substring(begin+2,finish);
+         if(!url.contains(".m3u8"))continue;
          if(seen.add(name+"|"+url)){JSONObject item=new JSONObject();item.put("name",name);item.put("url",url);channels.put(item);}
         }
        }
