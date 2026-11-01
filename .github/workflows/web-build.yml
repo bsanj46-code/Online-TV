@@ -25,6 +25,17 @@ jobs:
         run: |
           test -s www/index.html
           test -s www/hls.min.js
+          test -s www/ua.m3u
+          grep -q '#EXTM3U' www/ua.m3u
+          node --input-type=commonjs - <<'NODE'
+          const fs=require('fs');
+          const vm=require('vm');
+          const html=fs.readFileSync('www/index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)];
+          if(!scripts.length)throw Error('No inline player script');
+          for(const match of scripts)new vm.Script(match[1],{filename:'index-inline.js'});
+          console.log('Player JavaScript syntax OK');
+          NODE
       - uses: actions/upload-artifact@v4
         with:
           name: online-tv-web
