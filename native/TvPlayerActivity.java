@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Button;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
@@ -26,11 +27,14 @@ public class TvPlayerActivity extends Activity {
  private int index=0;
  private TextView hint;
  private TextView title;
+ private Button fullscreenButton;
+ private boolean manualFullscreen=false;
  private void applyOrientation(){
   boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
-  if(title!=null)title.setVisibility(landscape?View.GONE:View.VISIBLE);
+  boolean fullscreen=landscape||manualFullscreen;
+  if(title!=null)title.setVisibility(fullscreen?View.GONE:View.VISIBLE);
   if(hint!=null)hint.setVisibility(landscape?View.GONE:View.VISIBLE);
-  if(landscape){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
+  if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
   else{getWindow().getDecorView().setSystemUiVisibility(0);}
  }
  @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();}
@@ -84,6 +88,14 @@ public class TvPlayerActivity extends Activity {
   FrameLayout frame=new FrameLayout(this);
   SurfaceView surface=new SurfaceView(this);
   frame.addView(surface,new FrameLayout.LayoutParams(-1,-1,Gravity.CENTER));
+  fullscreenButton=new Button(this);
+  fullscreenButton.setText("⛶");
+  fullscreenButton.setTextSize(22);
+  fullscreenButton.setContentDescription("На весь екран");
+  fullscreenButton.setOnClickListener(v->{manualFullscreen=!manualFullscreen;fullscreenButton.setText(manualFullscreen?"⤢":"⛶");applyOrientation();});
+  FrameLayout.LayoutParams fullParams=new FrameLayout.LayoutParams(64,56,Gravity.RIGHT|Gravity.BOTTOM);
+  fullParams.setMargins(0,0,12,12);
+  frame.addView(fullscreenButton,fullParams);
   root.addView(frame,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
   hint=new TextView(this);
   hint.setTextColor(Color.LTGRAY);
