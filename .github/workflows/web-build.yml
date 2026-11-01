@@ -26,7 +26,9 @@ jobs:
           test -s www/index.html
           test -s www/hls.min.js
           test -s www/ua.m3u
-          grep -q '#EXTM3U' www/ua.m3u
+          grep -q '^#EXTM3U' www/ua.m3u
+          # Reject empty playlists: a header alone does not make a usable IPTV catalogue.
+          grep -q '^https://[^[:space:]]\+' www/ua.m3u
           node --input-type=commonjs - <<'NODE'
           const fs=require('fs');
           const vm=require('vm');
