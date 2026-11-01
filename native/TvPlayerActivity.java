@@ -32,6 +32,7 @@ public class TvPlayerActivity extends Activity {
  private Button fullscreenButton;
  private boolean manualFullscreen=false;
  private boolean fillVideo=false;
+ private int previousOrientation=ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
  private FrameLayout videoFrame;
  private void applyVideoFit(){
   if(player==null)return;
@@ -51,7 +52,7 @@ public class TvPlayerActivity extends Activity {
   boolean fullscreen=landscape||manualFullscreen;
   if(title!=null)title.setVisibility(fullscreen?View.GONE:View.VISIBLE);
   if(hint!=null)hint.setVisibility(fullscreen?View.GONE:View.VISIBLE);
-  if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
+  if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512|4096);}
   else{getWindow().getDecorView().setSystemUiVisibility(0);}
  }
  @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();applyVideoFit();}
@@ -119,14 +120,19 @@ public class TvPlayerActivity extends Activity {
   fullscreenButton.setElevation(12f*getResources().getDisplayMetrics().density);
   fullscreenButton.setContentDescription("На весь екран");
   fullscreenButton.setOnClickListener(v->{
-   fillVideo=!fillVideo;
-   manualFullscreen=fillVideo;
+   manualFullscreen=!manualFullscreen;
+   fillVideo=manualFullscreen;
    fullscreenButton.setText(fillVideo?"⤢":"⛶");
    fullscreenButton.setContentDescription(fillVideo?"Повернути звичайний розмір":"Розгорнути на весь екран");
-   if(fillVideo){setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);}
-   else{setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);}
+   if(manualFullscreen){
+    previousOrientation=getRequestedOrientation();
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+   }else{
+    setRequestedOrientation(previousOrientation);
+   }
    applyOrientation();
    frame.post(this::applyVideoFit);
+   handler.postDelayed(this::applyVideoFit,350);
   });
   int dp=(int)getResources().getDisplayMetrics().density;
   FrameLayout.LayoutParams fullParams=new FrameLayout.LayoutParams(56*dp,52*dp,Gravity.RIGHT|Gravity.BOTTOM);
@@ -161,6 +167,10 @@ public class TvPlayerActivity extends Activity {
    }
   }));
   playCurrent();
+ }
+ @Override public void onBackPressed(){
+  if(manualFullscreen){fullscreenButton.performClick();return;}
+  super.onBackPressed();
  }
  @Override protected void onDestroy(){
   closing=true;
