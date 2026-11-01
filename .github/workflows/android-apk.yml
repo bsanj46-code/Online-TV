@@ -31,7 +31,7 @@ jobs:
               s=s.replace('<application ', '<uses-permission android:name="android.permission.INTERNET" />\n    <application ', 1)
           p.write_text(s)
           PY
-      - name: Install native Android Media3 player
+      - name: Install native Android VLC player
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -48,9 +48,7 @@ jobs:
           gradle=Path('android/app/build.gradle')
           gradle.write_text(gradle.read_text()+"""
           dependencies {
-              implementation 'androidx.media3:media3-exoplayer:1.5.1'
-              implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
-              implementation 'androidx.media3:media3-ui:1.5.1'
+              implementation 'org.videolan.android:libvlc-all:3.6.5'
           }
           """)
           manifest=Path('android/app/src/main/AndroidManifest.xml')
