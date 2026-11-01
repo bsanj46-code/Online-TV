@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 public class TvPlayerActivity extends Activity {
@@ -35,6 +37,14 @@ public class TvPlayerActivity extends Activity {
   setContentView(root);
   player=new ExoPlayer.Builder(this).build();
   view.setPlayer(player);
+  player.addListener(new Player.Listener() {
+   @Override public void onPlayerError(PlaybackException error) {
+    runOnUiThread(() -> hint.setText("Не вдалося відтворити канал. Код: " + error.errorCode + ". Перевірте інший канал."));
+   }
+   @Override public void onPlaybackStateChanged(int state) {
+    if(state == Player.STATE_READY) runOnUiThread(() -> hint.setText("Відтворення запущено"));
+   }
+  });
   player.setMediaItem(MediaItem.fromUri(url));
   player.prepare();
   player.play();
