@@ -18,7 +18,12 @@ jobs:
           section=page.split('const urls=',1)[1].split(';const playlistUrl=',1)[0]
           import json
           channels=json.loads(section)
+          names_section=page.split('const names=',1)[1].split(';const urls=',1)[0]
+          names=json.loads(names_section)
           rows=[]
+          for name in names:
+              if name not in channels:
+                  rows.append([name,'NO_FIXED_SOURCE','', 'May be available only through the dynamically loaded IPTV playlist'])
           for name,url in channels.items():
               status='UNAVAILABLE';detail=''
               try:
@@ -39,7 +44,9 @@ jobs:
               rows.append([name,status,url,detail])
           with open('iptv-source-report.csv','w',newline='',encoding='utf-8') as f:
               writer=csv.writer(f);writer.writerow(['channel','result','url','details']);writer.writerows(rows)
-          print('Media detected:',sum(r[1]=='MEDIA_DETECTED' for r in rows),'/',len(rows))
+          print('Media detected:',sum(r[1]=='MEDIA_DETECTED' for r in rows),'/',len(channels))
+          print('No fixed source:',sum(r[1]=='NO_FIXED_SOURCE' for r in rows))
+          print('NOTE: Results are server-side probes, not proof of playback on Android devices.')
           for row in rows: print(row[0],row[1],row[3])
           PY
       - uses: actions/upload-artifact@v4
