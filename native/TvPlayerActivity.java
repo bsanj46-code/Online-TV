@@ -120,6 +120,12 @@ public class TvPlayerActivity extends Activity {
   FrameLayout.LayoutParams fullParams=new FrameLayout.LayoutParams(56*dp,52*dp,Gravity.RIGHT|Gravity.BOTTOM);
   fullParams.setMargins(0,0,14*dp,18*dp);
   frame.addView(fullscreenButton,fullParams);
+  frame.addOnLayoutChangeListener((v,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
+   if(fillVideo && player!=null && right-left>0 && bottom-top>0){
+    player.setAspectRatio((right-left)+":"+(bottom-top));
+    player.setScale(0f);
+   }
+  });
   root.addView(frame,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
   hint=new TextView(this);
   hint.setTextColor(Color.LTGRAY);
