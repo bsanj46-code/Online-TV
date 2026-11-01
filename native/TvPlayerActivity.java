@@ -35,17 +35,20 @@ public class TvPlayerActivity extends Activity {
  private int previousOrientation=ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
  private FrameLayout videoFrame;
  private void applyVideoFit(){
-  if(player==null)return;
-  if(fillVideo){
-   int w=videoFrame!=null?videoFrame.getWidth():0;
-   int h=videoFrame!=null?videoFrame.getHeight():0;
-   if(w<=0||h<=0)return;
+  if(player==null||videoFrame==null)return;
+  int w=videoFrame.getWidth();
+  int h=videoFrame.getHeight();
+  if(w<=0||h<=0)return;
+  // LibVLC needs the actual output-window dimensions after rotation.
+  // Aspect ratio alone can leave the SurfaceView rendered at its old size.
+  player.getVLCVout().setWindowSize(w,h);
+  boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
+  if(fillVideo||landscape){
    player.setAspectRatio(w+":"+h);
-   player.setScale(0f);
   }else{
    player.setAspectRatio(null);
-   player.setScale(0f);
   }
+  player.setScale(0f);
  }
  private void applyOrientation(){
   boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
@@ -55,7 +58,7 @@ public class TvPlayerActivity extends Activity {
   if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512|4096);}
   else{getWindow().getDecorView().setSystemUiVisibility(0);}
  }
- @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();applyVideoFit();}
+ @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();videoFrame.post(this::applyVideoFit);handler.postDelayed(this::applyVideoFit,300);}
 
  private final Handler handler=new Handler(Looper.getMainLooper());
  private Runnable timeout;
@@ -139,10 +142,8 @@ public class TvPlayerActivity extends Activity {
   fullParams.setMargins(0,0,14*dp,18*dp);
   frame.addView(fullscreenButton,fullParams);
   frame.addOnLayoutChangeListener((v,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
-   if(fillVideo && player!=null && right-left>0 && bottom-top>0){
-    player.setAspectRatio((right-left)+":"+(bottom-top));
-    player.setScale(0f);
-   }
+   if(player!=null && (right-left!=oldRight-oldLeft || bottom-top!=oldBottom-oldTop))
+    frame.post(this::applyVideoFit);
   });
   root.addView(frame,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
   hint=new TextView(this);
