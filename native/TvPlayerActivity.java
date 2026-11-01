@@ -1,44 +1,63 @@
 package ua.bashaiev.onlinetv;
 import android.app.Activity;
 import android.os.Bundle;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.os.Handler;
+import android.os.Looper;
 import android.graphics.Color;
+import android.net.Uri;
 import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.ViewGroup;
-import androidx.media3.common.MediaItem;
-import androidx.media3.common.PlaybackException;
-import androidx.media3.common.Player;
-import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.ui.PlayerView;
+import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import org.videolan.libvlc.LibVLC;
+import org.videolan.libvlc.Media;
+import org.videolan.libvlc.MediaPlayer;
+import java.util.ArrayList;
+import java.util.Arrays;
 public class TvPlayerActivity extends Activity {
- private ExoPlayer player;
- private java.util.ArrayList<String> sources;
- private int sourceIndex=0;
- private final android.os.Handler stallHandler=new android.os.Handler(android.os.Looper.getMainLooper());
- private Runnable stallCheck;
- private boolean played=false;
- private TextView statusHint;
- private void tryNext(String reason){
-  stallHandler.removeCallbacks(stallCheck);
-  if(player==null)return;
-  if(sourceIndex+1<sources.size()){
-   sourceIndex++;played=false;
-   statusHint.setText("Резервне джерело "+(sourceIndex+1)+"/"+sources.size());
-   player.setMediaItem(MediaItem.fromUri(sources.get(sourceIndex)));
-   player.prepare();player.play();scheduleStallCheck();
-  }else{statusHint.setText("Немає робочого джерела: "+reason);}
+ private LibVLC vlc;
+ private MediaPlayer player;
+ private ArrayList<String> sources;
+ private int index=0;
+ private TextView hint;
+ private final Handler handler=new Handler(Looper.getMainLooper());
+ private Runnable timeout;
+ private boolean started=false;
+ private boolean closing=false;
+ private void scheduleTimeout(){
+  if(timeout!=null)handler.removeCallbacks(timeout);
+  timeout=()->{if(!started&&!closing)nextSource("час очікування вичерпано");};
+  handler.postDelayed(timeout,15000);
  }
- private void scheduleStallCheck(){
-  stallHandler.removeCallbacks(stallCheck);
-  stallCheck=()->{if(player!=null&&!played&&player.getPlaybackState()!=Player.STATE_READY)tryNext("час очікування вичерпано");};
-  stallHandler.postDelayed(stallCheck,12000);
+ private void nextSource(String reason){
+  if(closing||player==null)return;
+  if(timeout!=null)handler.removeCallbacks(timeout);
+  player.stop();
+  if(index+1>=sources.size()){hint.setText("Джерела недоступні: "+reason);return;}
+  index++;
+  playCurrent();
  }
- @Override public void onCreate(Bundle saved) {
-  super.onCreate(saved);
-  String url=getIntent().getStringExtra("url");
+ private void playCurrent(){
+  if(closing||player==null)return;
+  started=false;
+  hint.setText("Підключення до джерела "+(index+1)+"/"+sources.size()+"…");
+  Media media=new Media(vlc,Uri.parse(sources.get(index)));
+  media.setHWDecoderEnabled(true,false);
+  media.addOption(":network-caching=1500");
+  player.setMedia(media);
+  media.release();
+  player.play();
+  scheduleTimeout();
+ }
+ @Override public void onCreate(Bundle state){
+  super.onCreate(state);
   sources=getIntent().getStringArrayListExtra("urls");
-  if(sources==null || sources.isEmpty()){sources=new java.util.ArrayList<>();sources.add(url);}
+  if(sources==null)sources=new ArrayList<>();
+  String first=getIntent().getStringExtra("url");
+  if(sources.isEmpty()&&first!=null)sources.add(first);
+  if(sources.isEmpty()){finish();return;}
   LinearLayout root=new LinearLayout(this);
   root.setOrientation(LinearLayout.VERTICAL);
   root.setBackgroundColor(Color.BLACK);
@@ -49,31 +68,36 @@ public class TvPlayerActivity extends Activity {
   title.setPadding(25,24,16,24);
   title.setOnClickListener(v->finish());
   root.addView(title);
-  PlayerView view=new PlayerView(this);
-  root.addView(view,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
-  TextView hint=new TextView(this);
-  hint.setText("Якщо відео не запускається, джерело може бути недоступним.");
+  FrameLayout frame=new FrameLayout(this);
+  SurfaceView surface=new SurfaceView(this);
+  frame.addView(surface,new FrameLayout.LayoutParams(-1,-1,Gravity.CENTER));
+  root.addView(frame,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
+  hint=new TextView(this);
   hint.setTextColor(Color.LTGRAY);
   hint.setGravity(Gravity.CENTER);
   hint.setPadding(16,16,16,32);
   root.addView(hint);
-  statusHint=hint;
   setContentView(root);
-  player=new ExoPlayer.Builder(this).build();
-  view.setPlayer(player);
-  player.addListener(new Player.Listener() {
-   @Override public void onPlayerError(PlaybackException error) {
-    runOnUiThread(() -> tryNext("код "+error.errorCode));
+  vlc=new LibVLC(this,new ArrayList<>(Arrays.asList("--network-caching=1500","--http-user-agent=Mozilla/5.0")));
+  player=new MediaPlayer(vlc);
+  player.getVLCVout().setVideoView(surface);
+  player.getVLCVout().attachViews();
+  player.setEventListener(event->runOnUiThread(()->{
+   if(closing)return;
+   switch(event.type){
+    case MediaPlayer.Event.Playing -> {started=true;if(timeout!=null)handler.removeCallbacks(timeout);hint.setText("Прямий ефір");}
+    case MediaPlayer.Event.EncounteredError -> nextSource("помилка потоку");
+    case MediaPlayer.Event.EndReached -> nextSource("трансляція завершилась");
+    case MediaPlayer.Event.Buffering -> {if(!started)hint.setText("Завантаження "+Math.round(event.getBuffering())+"%");}
    }
-   @Override public void onPlaybackStateChanged(int state) {
-    if(state == Player.STATE_READY) runOnUiThread(() -> {played=true;stallHandler.removeCallbacks(stallCheck);hint.setText("Відтворення запущено");});
-    if(state == Player.STATE_BUFFERING && !played) runOnUiThread(() -> scheduleStallCheck());
-   }
-  });
-  player.setMediaItem(MediaItem.fromUri(sources.get(0)));
-  player.prepare();
-  player.play();
-  scheduleStallCheck();
+  }));
+  playCurrent();
  }
- @Override public void onStop(){stallHandler.removeCallbacksAndMessages(null);super.onStop();if(player!=null){player.release();player=null;}}
+ @Override protected void onDestroy(){
+  closing=true;
+  handler.removeCallbacksAndMessages(null);
+  if(player!=null){player.setEventListener(null);player.stop();player.getVLCVout().detachViews();player.release();player=null;}
+  if(vlc!=null){vlc.release();vlc=null;}
+  super.onDestroy();
+ }
 }
