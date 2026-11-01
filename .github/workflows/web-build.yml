@@ -31,9 +31,9 @@ jobs:
           const fs=require('fs');
           const vm=require('vm');
           const html=fs.readFileSync('www/index.html','utf8');
-          const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)];
-          if(!scripts.length)throw Error('No inline player script');
-          for(const match of scripts)new vm.Script(match[1],{filename:'index-inline.js'});
+          const script=html.split('<script>')[1]?.split('</script>')[0];
+          if(!script)throw Error('No inline player script');
+          new vm.Script(script,{filename:'index-inline.js'});
           console.log('Player JavaScript syntax OK');
           NODE
       - uses: actions/upload-artifact@v4
