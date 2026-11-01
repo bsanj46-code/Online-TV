@@ -1,6 +1,9 @@
 package ua.bashaiev.onlinetv;
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.res.Configuration;
+import android.view.WindowManager;
+import android.view.View;
 import android.os.Handler;
 import android.os.Looper;
 import android.graphics.Color;
@@ -22,6 +25,16 @@ public class TvPlayerActivity extends Activity {
  private ArrayList<String> sources;
  private int index=0;
  private TextView hint;
+ private TextView title;
+ private void applyOrientation(){
+  boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
+  if(title!=null)title.setVisibility(landscape?View.GONE:View.VISIBLE);
+  if(hint!=null)hint.setVisibility(landscape?View.GONE:View.VISIBLE);
+  if(landscape){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
+  else{getWindow().getDecorView().setSystemUiVisibility(0);}
+ }
+ @Override public void onConfigurationChanged(Configuration config){super.onConfigurationChanged(config);applyOrientation();}
+
  private final Handler handler=new Handler(Looper.getMainLooper());
  private Runnable timeout;
  private boolean started=false;
@@ -61,7 +74,7 @@ public class TvPlayerActivity extends Activity {
   LinearLayout root=new LinearLayout(this);
   root.setOrientation(LinearLayout.VERTICAL);
   root.setBackgroundColor(Color.BLACK);
-  TextView title=new TextView(this);
+  title=new TextView(this);
   title.setText("‹  "+getIntent().getStringExtra("name"));
   title.setTextColor(Color.WHITE);
   title.setTextSize(20);
@@ -78,6 +91,7 @@ public class TvPlayerActivity extends Activity {
   hint.setPadding(16,16,16,32);
   root.addView(hint);
   setContentView(root);
+  applyOrientation();
   vlc=new LibVLC(this,new ArrayList<>(Arrays.asList("--network-caching=1500","--http-user-agent=Mozilla/5.0")));
   player=new MediaPlayer(vlc);
   player.getVLCVout().setVideoView(surface);
