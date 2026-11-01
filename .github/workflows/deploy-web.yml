@@ -36,3 +36,5 @@ jobs:
           path: ./www
       - id: deployment
         uses: actions/deploy-pages@v4
+
+# Redeploy GitHub Pages after enabling public Pages.
