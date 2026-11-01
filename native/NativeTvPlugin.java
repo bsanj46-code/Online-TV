@@ -48,6 +48,8 @@ public class NativeTvPlugin extends Plugin {
   if(url==null || !(url.startsWith("https://") || url.startsWith("http://"))) {call.reject("Invalid URL");return;}
   Intent intent=new Intent(getContext(),TvPlayerActivity.class);
   intent.putExtra("url",url);
+  org.json.JSONArray alternatives=call.getArray("urls");
+  if(alternatives!=null){java.util.ArrayList<String> candidates=new java.util.ArrayList<>();for(int i=0;i<alternatives.length();i++){String candidate=alternatives.optString(i,"");if(candidate.startsWith("https://")||candidate.startsWith("http://"))candidates.add(candidate);}intent.putStringArrayListExtra("urls",candidates);}
   intent.putExtra("name",call.getString("name","Онлайн ТВ"));
   getActivity().startActivity(intent);
   call.resolve();
