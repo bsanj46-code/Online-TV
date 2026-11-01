@@ -2,6 +2,7 @@ package ua.bashaiev.onlinetv;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.res.Configuration;
+import android.content.pm.ActivityInfo;
 import android.view.WindowManager;
 import android.view.View;
 import android.os.Handler;
@@ -31,12 +32,13 @@ public class TvPlayerActivity extends Activity {
  private Button fullscreenButton;
  private boolean manualFullscreen=false;
  private boolean fillVideo=false;
+ private FrameLayout videoFrame;
  private void applyVideoFit(){
   if(player==null)return;
   if(fillVideo){
-   android.util.DisplayMetrics metrics=new android.util.DisplayMetrics();
-   getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
-   int w=metrics.widthPixels,h=metrics.heightPixels;
+   int w=videoFrame!=null?videoFrame.getWidth():0;
+   int h=videoFrame!=null?videoFrame.getHeight():0;
+   if(w<=0||h<=0)return;
    player.setAspectRatio(w+":"+h);
    player.setScale(0f);
   }else{
@@ -48,7 +50,7 @@ public class TvPlayerActivity extends Activity {
   boolean landscape=getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE;
   boolean fullscreen=landscape||manualFullscreen;
   if(title!=null)title.setVisibility(fullscreen?View.GONE:View.VISIBLE);
-  if(hint!=null)hint.setVisibility(landscape?View.GONE:View.VISIBLE);
+  if(hint!=null)hint.setVisibility(fullscreen?View.GONE:View.VISIBLE);
   if(fullscreen){getWindow().getDecorView().setSystemUiVisibility(5894|1024|512);}
   else{getWindow().getDecorView().setSystemUiVisibility(0);}
  }
@@ -101,6 +103,7 @@ public class TvPlayerActivity extends Activity {
   title.setOnClickListener(v->finish());
   root.addView(title);
   FrameLayout frame=new FrameLayout(this);
+  videoFrame=frame;
   SurfaceView surface=new SurfaceView(this);
   frame.addView(surface,new FrameLayout.LayoutParams(-1,-1,Gravity.CENTER));
   fullscreenButton=new Button(this);
@@ -115,7 +118,16 @@ public class TvPlayerActivity extends Activity {
   fullscreenButton.setBackground(buttonBackground);
   fullscreenButton.setElevation(12f*getResources().getDisplayMetrics().density);
   fullscreenButton.setContentDescription("На весь екран");
-  fullscreenButton.setOnClickListener(v->{fillVideo=!fillVideo;fullscreenButton.setText(fillVideo?"⤢":"⛶");fullscreenButton.setContentDescription(fillVideo?"Звичайний розмір":"Розтягнути відео на весь екран");applyVideoFit();});
+  fullscreenButton.setOnClickListener(v->{
+   fillVideo=!fillVideo;
+   manualFullscreen=fillVideo;
+   fullscreenButton.setText(fillVideo?"⤢":"⛶");
+   fullscreenButton.setContentDescription(fillVideo?"Повернути звичайний розмір":"Розгорнути на весь екран");
+   if(fillVideo){setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);}
+   else{setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);}
+   applyOrientation();
+   frame.post(this::applyVideoFit);
+  });
   int dp=(int)getResources().getDisplayMetrics().density;
   FrameLayout.LayoutParams fullParams=new FrameLayout.LayoutParams(56*dp,52*dp,Gravity.RIGHT|Gravity.BOTTOM);
   fullParams.setMargins(0,0,14*dp,18*dp);
