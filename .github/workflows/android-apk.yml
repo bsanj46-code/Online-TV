@@ -53,7 +53,7 @@ jobs:
           """)
           manifest=Path('android/app/src/main/AndroidManifest.xml')
           xml=manifest.read_text()
-          xml=xml.replace('</application>', '<activity android:name=".TvPlayerActivity" android:exported="false" />'+chr(10)+'</application>')
+          xml=xml.replace('</application>', '<activity android:name=".TvPlayerActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:screenOrientation="fullSensor" />'+chr(10)+'</application>')
           manifest.write_text(xml)
           PY
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
