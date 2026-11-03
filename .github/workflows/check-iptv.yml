@@ -48,6 +48,8 @@ jobs:
           print('No fixed source:',sum(r[1]=='NO_FIXED_SOURCE' for r in rows))
           print('NOTE: Results are server-side probes, not proof of playback on Android devices.')
           for row in rows: print(row[0],row[1],row[3])
+          if not any(row[1]=='MEDIA_DETECTED' for row in rows):
+              raise SystemExit('IPTV validation failed: no fixed channel media streams detected')
           PY
       - uses: actions/upload-artifact@v4
         with:
