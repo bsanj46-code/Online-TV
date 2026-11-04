@@ -17,6 +17,7 @@ jobs:
           java-version: '21'
       # GitHub Ubuntu runners already provide Android SDK; avoid setup-android sdkmanager failure.
       - run: npm install
+      - run: npm test
       - run: npm run build
       - run: npx cap add android
       - run: npx cap sync android
@@ -61,3 +62,4 @@ jobs:
         with:
           name: online-tv-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
