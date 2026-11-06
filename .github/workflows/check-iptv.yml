@@ -2,7 +2,7 @@ name: Check IPTV sources
 on:
   push:
     branches: [main]
-    paths: ['index.html', 'scripts/check-streams.py', '.github/workflows/check-iptv.yml']
+    paths: ['index.html', 'scripts/check-streams.py', '.github/workflows/check-iptv.yml', 'package.json', 'package-lock.json', 'build.mjs', 'player.test.mjs']
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
@@ -12,6 +12,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Test player
+        run: npm test
+      - name: Build application
+        run: npm run build
       - name: Ensure media probe
         run: command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - name: Test actual channel media
