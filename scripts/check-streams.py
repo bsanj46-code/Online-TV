@@ -29,4 +29,6 @@ with open('iptv-source-report.csv','w',newline='',encoding='utf-8') as f:
 for row in rows:print(row[0],row[1],row[3])
 passed=sum(r[1]=='MEDIA_DETECTED' for r in rows)
 print(f'Media detected: {passed}/{len(rows)}. Server probes do not prove Android/browser playback.')
-if not passed:raise SystemExit('No channel media detected')
+if passed != len(rows):
+ failed=[r[0] for r in rows if r[1]!='MEDIA_DETECTED']
+ raise SystemExit(f'IPTV media verification failed: {len(failed)} of {len(rows)} channels unavailable or without video: {", ".join(failed)}')
