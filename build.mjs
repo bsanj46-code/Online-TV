@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 fs.mkdirSync('www',{recursive:true});
 fs.copyFileSync('index.html','www/index.html');
+fs.mkdirSync('www/films',{recursive:true});
+fs.copyFileSync('films/index.html','www/films/index.html');
 fs.copyFileSync('node_modules/hls.js/dist/hls.min.js','www/hls.min.js');
 // Publicly listed Ukrainian streams. Bundle at build time to avoid CORS on playlist fetching.
 const sources=[
